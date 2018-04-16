@@ -53,26 +53,56 @@ for (q, i) in enumerate(np.arange(0, 6, 6)):
 for (q, i) in enumerate(np.arange(0, 10, 10)):
         seconddigitsort = contours.sort_contours(seconddigit[i:i+10])[0]
 
+notdetected = False
+
 bubbled = None
+totalpixels = 0
+pixelcount = []
 for (j, c) in enumerate(firstdigitsort):
     mask = np.zeros(thresh.shape, dtype="uint8")
     cv2.drawContours(mask, [c], -1, 255, -1)
     mask = cv2.bitwise_and(thresh, thresh, mask=mask)
     total = cv2.countNonZero(mask)
+    totalpixels += total
+    pixelcount.append(total)
     if bubbled is None or total > bubbled[0]:
         bubbled = (total, j)
 
-
+avgpixels = totalpixels / float(6)
+threshold = avgpixels * 1.3
 first = str(bubbled[1])
+nummatches=0
+for i, value in enumerate(pixelcount):
+    if pixelcount[i] > threshold:
+        nummatches += 1
+if bubbled[0] <= threshold or nummatches > 1:
+    notdetected = True
+
+
+
 
 bubbled = None
+totalpixels = 0
+pixelcount = []
 for (j, c) in enumerate(seconddigitsort):
     mask = np.zeros(thresh.shape, dtype="uint8")
     cv2.drawContours(mask, [c], -1, 255, -1)
     mask = cv2.bitwise_and(thresh, thresh, mask=mask)
     total = cv2.countNonZero(mask)
+    totalpixels += total
+    pixelcount.append(total)
     if bubbled is None or total > bubbled[0]:
         bubbled = (total, j)
 
+avgpixels = totalpixels / float(10)
+threshold = avgpixels * 1.3
 second = str(bubbled[1])
-print first + second
+nummatches=0
+for i, value in enumerate(pixelcount):
+    if pixelcount[i] > threshold:
+        nummatches += 1
+if bubbled[0] <= threshold or nummatches > 1:
+    notdetected = True
+
+if not notdetected:
+    print first + second
