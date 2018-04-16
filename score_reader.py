@@ -4,13 +4,23 @@ import numpy as np
 import argparse
 import imutils
 import cv2
+import pyzbar.pyzbar as pyzbar
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True, help="path to the input image")
 args = vars(ap.parse_args())
 
 image = cv2.imread(args["image"])
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+qrs = pyzbar.decode(image)
+qrcode = ""
+if len(qrs) > 0:
+    qrcode = qrs[0].data
+
+(h, w) = image.shape[:2]
+h2 = int(h * .85)
+w2 = int(w * .65)
+cropped = image[h2:h, w2:w]
+gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 edged = cv2.Canny(blurred, 75, 200)
 
@@ -104,5 +114,6 @@ for i, value in enumerate(pixelcount):
 if bubbled[0] <= threshold or nummatches > 1:
     notdetected = True
 
+print qrcode
 if not notdetected:
     print first + second
