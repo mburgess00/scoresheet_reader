@@ -6,14 +6,15 @@ import imutils
 import cv2
 import pyzbar.pyzbar as pyzbar
 
-debug = False
+debug = True
+showbubbles = True
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True, help="path to the input image")
 args = vars(ap.parse_args())
 
 image = cv2.imread(args["image"])
-scaled = imutils.resize(image, height=1000)
+scaled = imutils.resize(image, height=2200)
 qrs = pyzbar.decode(scaled)
 qrcode = ""
 if len(qrs) > 0:
@@ -39,7 +40,7 @@ if len(cnts) > 0:
             docCnt = approx
             break
 
-paper = four_point_transform(image, docCnt.reshape(4, 2))
+paper = four_point_transform(cropped, docCnt.reshape(4, 2))
 warped = four_point_transform(gray, docCnt.reshape(4, 2))
 
 thresh = cv2.threshold(warped, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
@@ -55,13 +56,16 @@ for c in cnts:
     if debug:
         print str(x) + "," + str(y) + ": " + str(w) + "x" + str(h) + " " + str(ar)
 
-    if w >= 10 and h >= 10 and ar >= 0.9 and ar <= 1.1:
+    if w >= 25 and h >= 25 and ar >= 0.7 and ar <= 1.3:
         if debug:
             print "found a bubble"
         questionCnts.append(c)
 
 if debug:
     print "found " + str(len(questionCnts)) + " bubbles"
+
+if showbubbles:
+    cv2.drawContours(paper, questionCnts, -1, (255, 0, 0), 3)
 
 questionCnts = contours.sort_contours(questionCnts, method="top-to-bottom")[0]
 firstdigit = contours.sort_contours(questionCnts[:6])[0]
@@ -72,6 +76,7 @@ for (q, i) in enumerate(np.arange(0, 6, 6)):
 
 for (q, i) in enumerate(np.arange(0, 10, 10)):
         seconddigitsort = contours.sort_contours(seconddigit[i:i+10])[0]
+
 
 notdetected = False
 
@@ -90,7 +95,7 @@ for (j, c) in enumerate(firstdigitsort):
 
 avgpixels = totalpixels / float(6)
 threshold = avgpixels * 1.5
-first = str(bubbled[1])
+first = bubbled[1]
 nummatches=0
 if debug:
     print "First Digit Thresholds:"
@@ -109,8 +114,6 @@ if nummatches > 1:
        print "First Digit: found " + str(nummatches) + " of bubbles over threshold of " + str(threshold)
 
 
-
-
 bubbled = None
 totalpixels = 0
 pixelcount = []
@@ -126,7 +129,7 @@ for (j, c) in enumerate(seconddigitsort):
 
 avgpixels = totalpixels / float(10)
 threshold = avgpixels * 1.5
-second = str(bubbled[1])
+second = bubbled[1]
 nummatches=0
 if debug:
     print "Second Digit Thresholds:"
@@ -144,6 +147,12 @@ if nummatches > 1:
     if debug:
        print "Second Digit: found " + str(nummatches) + " of bubbles over threshold of " + str(threshold)
 
+if showbubbles:
+    cv2.drawContours(paper, [firstdigit[first]], -1, (0, 255, 0), 3)
+    cv2.drawContours(paper, [seconddigit[second]], -1, (0, 255, 0), 3)
+    cv2.imshow("bubbles", paper)
+    cv2.waitKey(0)
+
 print qrcode
 if not notdetected:
-    print first + second
+    print str(first) + str(second)
