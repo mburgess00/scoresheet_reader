@@ -6,12 +6,19 @@ import imutils
 import cv2
 import pyzbar.pyzbar as pyzbar
 
-debug = True
-showbubbles = True
+debug = False
+showbubbles = False
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True, help="path to the input image")
+ap.add_argument("-d", "--debug", action='store_true', help="show debugging")
+ap.add_argument("-s", "--showbubbles", action='store_true', help="show a window with the detected bubbles")
 args = vars(ap.parse_args())
+
+if args["showbubbles"]:
+    showbubbles = True
+if args["debug"]:
+    debug = True
 
 image = cv2.imread(args["image"])
 scaled = imutils.resize(image, height=2200)
