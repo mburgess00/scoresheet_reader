@@ -6,20 +6,23 @@ import imutils
 import cv2
 import pyzbar.pyzbar as pyzbar
 
+debug = False
+
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True, help="path to the input image")
 args = vars(ap.parse_args())
 
 image = cv2.imread(args["image"])
-qrs = pyzbar.decode(image)
+scaled = imutils.resize(image, height=1000)
+qrs = pyzbar.decode(scaled)
 qrcode = ""
 if len(qrs) > 0:
     qrcode = qrs[0].data
 
-(h, w) = image.shape[:2]
+(h, w) = scaled.shape[:2]
 h2 = int(h * .85)
 w2 = int(w * .65)
-cropped = image[h2:h, w2:w]
+cropped = scaled[h2:h, w2:w]
 gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 edged = cv2.Canny(blurred, 75, 200)
@@ -49,9 +52,16 @@ questionCnts = []
 for c in cnts:
     (x, y, w, h) = cv2.boundingRect(c)
     ar = w / float(h)
+    if debug:
+        print str(x) + "," + str(y) + ": " + str(w) + "x" + str(h) + " " + str(ar)
 
-    if w >= 20 and h >= 20 and ar >= 0.9 and ar <= 1.1:
+    if w >= 10 and h >= 10 and ar >= 0.9 and ar <= 1.1:
+        if debug:
+            print "found a bubble"
         questionCnts.append(c)
+
+if debug:
+    print "found " + str(len(questionCnts)) + " bubbles"
 
 questionCnts = contours.sort_contours(questionCnts, method="top-to-bottom")[0]
 firstdigit = contours.sort_contours(questionCnts[:6])[0]
@@ -79,14 +89,24 @@ for (j, c) in enumerate(firstdigitsort):
         bubbled = (total, j)
 
 avgpixels = totalpixels / float(6)
-threshold = avgpixels * 1.3
+threshold = avgpixels * 1.5
 first = str(bubbled[1])
 nummatches=0
+if debug:
+    print "First Digit Thresholds:"
 for i, value in enumerate(pixelcount):
+    if debug: 
+        print pixelcount[i]
     if pixelcount[i] > threshold:
         nummatches += 1
-if bubbled[0] <= threshold or nummatches > 1:
+if bubbled[0] <= threshold:
     notdetected = True
+    if debug:
+       print "First Digit: found no bubbles over threshold of " + str(threshold)
+if nummatches > 1:
+    notdetected = True
+    if debug:
+       print "First Digit: found " + str(nummatches) + " of bubbles over threshold of " + str(threshold)
 
 
 
@@ -105,14 +125,24 @@ for (j, c) in enumerate(seconddigitsort):
         bubbled = (total, j)
 
 avgpixels = totalpixels / float(10)
-threshold = avgpixels * 1.3
+threshold = avgpixels * 1.5
 second = str(bubbled[1])
 nummatches=0
+if debug:
+    print "Second Digit Thresholds:"
 for i, value in enumerate(pixelcount):
+    if debug: 
+        print pixelcount[i]
     if pixelcount[i] > threshold:
         nummatches += 1
-if bubbled[0] <= threshold or nummatches > 1:
+if bubbled[0] <= threshold:
     notdetected = True
+    if debug:
+       print "Second Digit: found no bubbles over threshold of " + str(threshold)
+if nummatches > 1:
+    notdetected = True
+    if debug:
+       print "Second Digit: found " + str(nummatches) + " of bubbles over threshold of " + str(threshold)
 
 print qrcode
 if not notdetected:
